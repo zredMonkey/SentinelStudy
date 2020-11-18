@@ -2,6 +2,7 @@ package com.sentinelstudy.demo.demo;
 
 import com.alibaba.csp.sentinel.Entry;
 import com.alibaba.csp.sentinel.SphU;
+import com.alibaba.csp.sentinel.adapter.gateway.common.rule.GatewayParamFlowItem;
 import com.alibaba.csp.sentinel.annotation.SentinelResource;
 import com.alibaba.csp.sentinel.slots.block.BlockException;
 import com.alibaba.csp.sentinel.slots.block.RuleConstant;
@@ -43,20 +44,15 @@ public class SentinelFirst {
     public static void main(String[] args) {
         // 配置规则.
         initFlowRules();
-
         while (true) {
-            // 1.5.0 版本开始可以直接利用 try-with-resources 特性，自动 exit entry,
-            // Entry implements AutoCloseable
             // 名为HelloWorld的资源是否触发保护规则，如果抛出异常则触发了保护规则
             try (Entry entry = SphU.entry("HelloWorld")) {
                 // 被保护的逻辑
                 System.out.println("hello world sentinel~");
-
             } catch (BlockException ex) {
                 // 处理被流控的逻辑
                 System.out.println("触发保护规则-----------blocked!");
             }
-
             // 睡眠
             try {
                 Thread.sleep(10);
@@ -66,7 +62,6 @@ public class SentinelFirst {
         }
     }
 
-
     // 通过流控规则来指定允许该资源通过的请求次数，
     // 例如下面的代码定义了资源 HelloWorld 每秒最多只能通过 20 个请求
     private static void initFlowRules(){
@@ -74,18 +69,17 @@ public class SentinelFirst {
         FlowRule rule = new FlowRule();
         rule.setResource("HelloWorld");
         rule.setGrade(RuleConstant.FLOW_GRADE_QPS);
-        // Set limit QPS to 20.
-        rule.setCount(20);
+        rule.setControlBehavior(0);
+        GatewayParamFlowItem gatewayParamFlowItem = new GatewayParamFlowItem();
+        gatewayParamFlowItem.setParseStrategy(0);
+        rule.setCount(23);
         rules.add(rule);
         // 加载规则
         FlowRuleManager.loadRules(rules);
     }
 
 
-
-
-    //  注解支持模块，来定义我们的资源
-    // 这样，helloWorld() 方法就成了我们的一个资源。注意注解支持模块需要配合 Spring AOP 或者 AspectJ 一起使用。
+    // 注解支持模块，来定义我们的资源.这样，helloWorld() 方法就成了我们的一个资源。
     @SentinelResource("HelloWorld")
     public void helloWorld() {
         // 资源中的逻辑
